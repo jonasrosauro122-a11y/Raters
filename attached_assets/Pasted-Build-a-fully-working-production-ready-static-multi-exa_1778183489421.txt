@@ -1,0 +1,550 @@
+Build a fully working, production-ready, static multi-exam training platform for Virtual Assistants using only HTML, CSS, and vanilla JavaScript.
+
+IMPORTANT REQUIREMENTS:
+- Main entry file must be `index.html`
+- Do NOT use React, Next.js, Vite, or any framework
+- Use plain HTML, CSS, and JavaScript only
+- Must run in Replit
+- Must deploy cleanly to Netlify with minimal editing
+- Must integrate with Supabase securely through Netlify Functions
+- Must be modular so I can create multiple exams and tracks from one codebase
+- Must have powerful, premium animation
+- Must be responsive and polished
+
+MAIN GOAL:
+Create a reusable “Training Exam Engine” where I can manage multiple training tracks and multiple exams from one system.
+
+I want one codebase that supports:
+- Track 1: NPPW Operations
+- Track 2: Insurance VA
+- Track 3: Executive Assistant
+- Track 4: General VA
+- Easy ability to add more tracks later
+
+Each track should support:
+- Practice Quiz
+- Exam 1
+- Exam 2
+- Final Exam
+
+The system must be reusable so I can create new exams just by editing structured data files, not rewriting the whole app.
+
+==================================================
+PROJECT STRUCTURE
+==================================================
+
+Create this structure:
+
+- index.html
+- exam.html
+- results.html
+- admin.html
+
+- assets/
+  - styles.css
+  - app.js
+  - router.js
+  - ui.js
+  - storage.js
+  - supabase-client.js
+  - exam-engine.js
+  - animations.js
+
+- data/
+  - tracks.js
+  - exams.js
+  - question-bank.js
+
+- netlify/
+  - functions/
+    - submit-attempt.js
+    - get-attempts.js
+
+- netlify.toml
+
+==================================================
+CORE SYSTEM ARCHITECTURE
+==================================================
+
+The system must be data-driven.
+
+1. `tracks.js`
+This file should define the available tracks.
+Example tracks:
+- nppw
+- insurance
+- executive-assistant
+- general-va
+
+Each track should include:
+- id
+- title
+- subtitle
+- description
+- icon name
+- accent color
+- hero image placeholder support
+- required progression order
+- passing score
+
+2. `exams.js`
+This file should define each exam under each track.
+Each exam should include:
+- id
+- trackId
+- title
+- examType (practice, exam1, exam2, final)
+- durationMinutes
+- passingScore
+- shuffleQuestions boolean
+- randomizeChoices boolean
+- attemptLimit
+- unlockRule
+- sections
+- instructions
+- version
+
+3. `question-bank.js`
+This file should contain reusable questions grouped by:
+- track
+- exam
+- category
+- difficulty
+
+Each question should support:
+- id
+- trackId
+- examId
+- category
+- difficulty
+- type (multiple-choice, true-false)
+- prompt
+- choices
+- correctAnswer
+- explanation
+- points
+
+The app should pull exam content from these files dynamically.
+
+==================================================
+PAGES TO BUILD
+==================================================
+
+1. `index.html` — Training Portal Home
+This is the landing page.
+
+Features:
+- premium animated hero section
+- track selection cards
+- select training track
+- show available exams under each track
+- show locked/unlocked exams
+- trainee name input
+- trainee ID or batch input
+- trainer/proctor input
+- continue button
+- recent saved attempt restore
+- progress overview per trainee (localStorage first, Supabase optional)
+
+UI feel:
+- futuristic training command center
+- glassmorphism panels
+- animated glow background
+- floating particles
+- motion-rich hover effects
+- progress rings
+- premium dashboard feel
+
+2. `exam.html` — Exam Engine
+This is where the actual exam happens.
+
+Features:
+- load selected track + exam dynamically
+- 90-minute or exam-defined timer
+- animated timer ring
+- question navigation
+- previous/next buttons
+- question palette grid
+- flag question
+- clear answer
+- autosave to localStorage
+- restore draft attempt
+- keyboard shortcuts
+- show answered/unanswered/flagged counts
+- category badges
+- live progress bar
+- review mode before final submit
+
+Exam engine must support:
+- multiple-choice
+- true/false
+- reusable render logic
+- shuffled questions if enabled
+- shuffled answer choices if enabled
+- validation and draft save
+
+3. `results.html`
+Features:
+- trainee info
+- track info
+- exam info
+- final percentage
+- pass/fail status
+- category breakdown
+- question stats
+- score animation count-up
+- confetti if passed
+- review of incorrect answers
+- explanation view for trainers/admin only
+- print result button
+- start next exam button if unlocked
+- return to dashboard/home button
+
+4. `admin.html`
+Trainer/Admin page.
+
+Features:
+- trainer login UI
+- simple admin gate UI
+- view submitted attempts
+- filter by:
+  - trainee name
+  - track
+  - exam
+  - pass/fail
+  - date
+- stats cards:
+  - total submissions
+  - pass rate
+  - average score
+  - track-wise completion
+- expandable table of attempts
+- category score breakdown
+- export CSV button
+- search functionality
+- polished analytics cards
+
+IMPORTANT:
+Frontend admin login can exist for UI flow, but real data protection should come from Netlify Function logic and environment variables, not just frontend code.
+
+==================================================
+MULTI-EXAM / PROGRESSION LOGIC
+==================================================
+
+Build progression rules.
+
+Requirements:
+- Practice Quiz is always unlocked
+- Exam 1 unlocks after Practice Quiz or can be always open depending on config
+- Exam 2 unlocks only after passing Exam 1
+- Final Exam unlocks only after passing Exam 2
+- Add admin override support
+- Add config-based unlock rules per track
+- Show locked exams visually
+- Show reasons why exam is locked
+
+Example:
+- User cannot take Final Exam until Exam 1 and Exam 2 are passed
+- Show a lock icon and message:
+  “Pass Exam 2 first to unlock Final Exam”
+
+==================================================
+ANIMATION REQUIREMENTS
+==================================================
+
+Add strong premium animation across the site.
+
+Use CSS and vanilla JS animations only.
+
+Must include:
+- animated gradient background
+- floating glow particles
+- glass card entrance animations
+- smooth fade/slide transitions
+- animated progress rings
+- pulse warnings when timer is low
+- count-up animation for results
+- subtle parallax effect on hero
+- hover lift on cards/buttons
+- animated category progress bars
+- premium confetti on pass
+- elegant modal animations
+- rich transitions between exam states
+
+Animation feel:
+- powerful
+- clean
+- premium
+- futuristic
+- not childish
+- not overly flashy
+
+==================================================
+LOCAL STORAGE LOGIC
+==================================================
+
+Use localStorage for:
+- current trainee profile
+- selected track
+- selected exam
+- draft attempt
+- progress history
+- passed exams
+- recent sessions
+
+Suggested localStorage keys:
+- training_current_user
+- training_selected_track
+- training_selected_exam
+- training_exam_draft
+- training_progress
+- training_attempt_history
+
+==================================================
+SUPABASE + NETLIFY ARCHITECTURE
+==================================================
+
+IMPORTANT:
+Do NOT write directly to Supabase from the browser using sensitive keys.
+
+Use this flow:
+Frontend → Netlify Function → Supabase
+
+1. Frontend submits final exam attempt to:
+`/.netlify/functions/submit-attempt`
+
+2. Netlify Function uses environment variables:
+- SUPABASE_URL
+- SUPABASE_SERVICE_ROLE_KEY
+- SITE_NAME
+- EMAIL_TO (optional)
+- EMAIL_FROM (optional)
+
+3. Netlify Function inserts into Supabase table(s)
+
+4. Frontend receives JSON success/failure
+
+5. Optional:
+- add a second Netlify function `get-attempts.js` for admin reporting
+- this can read submissions securely
+
+==================================================
+SUPABASE TABLE DESIGN
+==================================================
+
+Build the app expecting these tables:
+
+TABLE 1: `training_attempts`
+Fields:
+- id
+- created_at
+- trainee_name
+- trainee_id
+- proctor_name
+- track_id
+- track_title
+- exam_id
+- exam_title
+- exam_type
+- exam_version
+- started_at
+- submitted_at
+- duration_seconds
+- total_questions
+- answered_count
+- flagged_count
+- correct_count
+- percentage
+- passed
+- answers_json
+- category_breakdown_json
+- environment
+- site_url
+
+TABLE 2: `training_progress`
+Fields:
+- id
+- created_at
+- trainee_name
+- trainee_id
+- track_id
+- passed_exam_ids_json
+- latest_exam_id
+- latest_percentage
+- overall_status
+
+The app can still work with localStorage alone, but it must be ready for Supabase immediately with minimal edits.
+
+==================================================
+NETLIFY COMPATIBILITY
+==================================================
+
+Create `netlify.toml` with correct static + functions setup.
+
+Requirements:
+- static site deployment
+- no framework build required
+- Netlify Functions enabled
+- no broken routes
+- no server-side frontend code
+- clean deploy in Netlify
+
+==================================================
+UI / BRAND / DESIGN SYSTEM
+==================================================
+
+Visual style:
+- premium SaaS dashboard
+- dark futuristic training portal
+- blue / indigo / cyan glow accents
+- glassmorphism panels
+- subtle neon lines
+- polished typography
+- modern spacing and responsive layout
+
+Use:
+- large hero banners
+- animated track cards
+- exam cards with status badges
+- glowing lock badges
+- beautiful analytics cards
+- polished tables
+- premium buttons
+
+Status badges:
+- Locked
+- Available
+- In Progress
+- Passed
+- Failed
+- Completed
+
+==================================================
+TRACK AND EXAM EXAMPLES TO PRELOAD
+==================================================
+
+Preload sample content for these tracks:
+
+1. NPPW Operations
+- Practice Quiz
+- Exam 1
+- Exam 2
+- Final Exam
+
+2. Insurance VA
+- Practice Quiz
+- Exam 1
+- Exam 2
+- Final Exam
+
+3. Executive Assistant
+- Practice Quiz
+- Exam 1
+- Exam 2
+- Final Exam
+
+4. General VA
+- Practice Quiz
+- Exam 1
+- Exam 2
+- Final Exam
+
+Each exam should have sample questions and categories so the system is fully functional.
+
+==================================================
+QUESTION CATEGORIES EXAMPLES
+==================================================
+
+NPPW:
+- ServiceChannel
+- Jobber
+- Acuity
+- Tracking & Reporting
+- Verification Accuracy
+
+Insurance VA:
+- Quoting
+- Policy Basics
+- Coverage Knowledge
+- Client Communication
+- AMS / Carrier Workflow
+
+Executive Assistant:
+- Calendar Management
+- Inbox Management
+- Travel Coordination
+- Follow-up Discipline
+- Documentation
+
+General VA:
+- Communication
+- File Management
+- Productivity
+- Task Handling
+- Accuracy
+
+==================================================
+SECURITY / ADMIN NOTES
+==================================================
+
+Important:
+- Keep frontend clean and user-friendly
+- But do not pretend frontend-only password is secure
+- Real protected data retrieval should use Netlify function logic
+- Structure the code to support secure expansion later
+- Avoid hardcoding sensitive keys in HTML or JS
+- No exposed service keys in frontend files
+
+==================================================
+CODE QUALITY REQUIREMENTS
+==================================================
+
+- clean modular code
+- clear comments
+- easy to update
+- exam engine separated from UI logic
+- reusable rendering functions
+- reusable scoring functions
+- reusable unlock/progression logic
+- robust validation
+- helpful empty states
+- strong error handling
+- minimal manual editing after generation
+
+==================================================
+FINAL OUTPUT REQUIREMENTS
+==================================================
+
+Generate all files fully.
+Do not leave placeholders or TODO comments.
+Do not generate partial snippets.
+
+Output order:
+1. index.html
+2. exam.html
+3. results.html
+4. admin.html
+5. assets/styles.css
+6. assets/app.js
+7. assets/router.js
+8. assets/ui.js
+9. assets/storage.js
+10. assets/supabase-client.js
+11. assets/exam-engine.js
+12. assets/animations.js
+13. data/tracks.js
+14. data/exams.js
+15. data/question-bank.js
+16. netlify/functions/submit-attempt.js
+17. netlify/functions/get-attempts.js
+18. netlify.toml
+
+Also include a short README section at the very top explaining:
+- entry point
+- page flow
+- where to edit tracks
+- where to edit exams
+- where to edit questions
+- how localStorage works
+- how Netlify Functions work
+- how to connect Supabase
