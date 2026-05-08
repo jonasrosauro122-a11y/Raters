@@ -1,0 +1,78 @@
+export const TRACKS = [
+  {
+    id: "nppw",
+    title: "NPPW Operations",
+    subtitle: "National Property & Pest Workflow",
+    description: "Master ServiceChannel, Jobber, Acuity scheduling, and field operations tracking for property & pest management workflows.",
+    icon: "🏗️",
+    accentColor: "#3b82f6",
+    glowColor: "rgba(59,130,246,0.35)",
+    passingScore: 75,
+    categories: ["ServiceChannel", "Jobber", "Acuity", "Tracking & Reporting", "Verification Accuracy"],
+    progression: ["practice", "exam1", "exam2", "final"],
+    unlockRules: {
+      practice: null,
+      exam1: null,
+      exam2: "exam1",
+      final: "exam2",
+    },
+  },
+  {
+    id: "insurance",
+    title: "Insurance VA",
+    subtitle: "Virtual Assistant — Insurance Track",
+    description: "Deep dive into quoting, policy management, coverage knowledge, client communication, and AMS/carrier workflows.",
+    icon: "🛡️",
+    accentColor: "#8b5cf6",
+    glowColor: "rgba(139,92,246,0.35)",
+    passingScore: 75,
+    categories: ["Quoting", "Policy Basics", "Coverage Knowledge", "Client Communication", "AMS / Carrier Workflow"],
+    progression: ["practice", "exam1", "exam2", "final"],
+    unlockRules: {
+      practice: null,
+      exam1: null,
+      exam2: "exam1",
+      final: "exam2",
+    },
+  },
+  {
+    id: "executive",
+    title: "Executive Assistant",
+    subtitle: "High-Level Executive Support Track",
+    description: "Excel at calendar management, inbox mastery, travel coordination, follow-up discipline, and executive documentation.",
+    icon: "👔",
+    accentColor: "#06b6d4",
+    glowColor: "rgba(6,182,212,0.35)",
+    passingScore: 75,
+    categories: ["Calendar Management", "Inbox Management", "Travel Coordination", "Follow-up Discipline", "Documentation"],
+    progression: ["practice", "exam1", "exam2", "final"],
+    unlockRules: {
+      practice: null,
+      exam1: null,
+      exam2: "exam1",
+      final: "exam2",
+    },
+  },
+  {
+    id: "general",
+    title: "General VA",
+    subtitle: "General Virtual Assistant Track",
+    description: "Build core VA skills in communication, file management, productivity tools, task handling, and accuracy standards.",
+    icon: "⚡",
+    accentColor: "#10b981",
+    glowColor: "rgba(16,185,129,0.35)",
+    passingScore: 75,
+    categories: ["Communication", "File Management", "Productivity", "Task Handling", "Accuracy"],
+    progression: ["practice", "exam1", "exam2", "final"],
+    unlockRules: {
+      practice: null,
+      exam1: null,
+      exam2: "exam1",
+      final: "exam2",
+    },
+  },
+];
+
+export function getTrackById(id) {
+  return TRACKS.find((t) => t.id === id) || null;
+}
