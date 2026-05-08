@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Panel — VA Training Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/styles.css" />
+  <style>
+    /* ── Leaderboard ── */
+    .lb-tabs {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+    .lb-tab {
+      padding: 7px 16px;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+      border: 1px solid var(--border-subtle);
+      background: transparent;
+      color: var(--text-secondary);
+      transition: all 0.18s;
+      letter-spacing: 0.01em;
+    }
+    .lb-tab:hover { border-color: var(--accent-cyan); color: var(--accent-cyan); }
+    .lb-tab.active {
+      background: var(--accent-cyan);
+      border-color: var(--accent-cyan);
+      color: #000;
+    }
+    .lb-tab.active.track-nppw     { background: #6366f1; border-color: #6366f1; color: #fff; }
+    .lb-tab.active.track-insurance { background: #0ea5e9; border-color: #0ea5e9; color: #fff; }
+    .lb-tab.active.track-executive { background: #f59e0b; border-color: #f59e0b; color: #000; }
+    .lb-tab.active.track-general   { background: #10b981; border-color: #10b981; color: #fff; }
+    .lb-type-tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+    .lb-type-tab {
+      padding: 5px 12px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid var(--border-subtle);
+      background: transparent;
+      color: var(--text-muted);
+      transition: all 0.15s;
+    }
+    .lb-type-tab:hover  { border-color: var(--border-default); color: var(--text-secondary); }
+    .lb-type-tab.active { background: rgba(255,255,255,0.08); border-color: var(--border-default); color: var(--text-primary); }
+    .lb-empty {
+      padding: 40px 24px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+    .lb-rank-medal {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      font-size: 0.85rem;
+      font-weight: 900;
+    }
+    .lb-rank-1 { background: linear-gradient(135deg,#f59e0b,#fbbf24); color:#000; }
+    .lb-rank-2 { background: linear-gradient(135deg,#94a3b8,#cbd5e1); color:#000; }
+    .lb-rank-3 { background: linear-gradient(135deg,#b45309,#d97706); color:#fff; }
+    .lb-rank-n { background: rgba(255,255,255,0.07); color: var(--text-muted); font-size:0.78rem; }
+    .lb-score-bar-wrap { display:flex; align-items:center; gap:8px; }
+    .lb-score-bar {
+      flex:1;
+      height:6px;
+      border-radius:3px;
+      background: rgba(255,255,255,0.06);
+      overflow:hidden;
+    }
+    .lb-score-bar-fill {
+      height:100%;
+      border-radius:3px;
+      background: var(--accent-cyan);
+      transition: width 0.4s ease;
+    }
+    .lb-score-bar-fill.pass  { background: var(--accent-emerald, #10b981); }
+    .lb-score-bar-fill.fail  { background: var(--accent-rose, #f43f5e); }
+    .lb-sync-badge {
+      display:inline-flex;
+      align-items:center;
+      gap:5px;
+      font-size:0.72rem;
+      font-weight:600;
+      padding:3px 9px;
+      border-radius:999px;
+      border:1px solid var(--border-subtle);
+      color:var(--text-muted);
+    }
+    .lb-sync-badge.live { border-color:#10b981; color:#10b981; }
+    .lb-sync-badge.local { border-color:#f59e0b; color:#f59e0b; }
+  </style>
+</head>
+<body>
+  <div class="bg-animated"></div>
+  <canvas id="particles-canvas"></canvas>
+  <div class="scanlines"></div>
+
+  <!-- ─── LOGIN GATE ─── -->
+  <div id="login-gate" style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px">
+    <div class="glass-card-static" style="padding:48px;max-width:420px;width:100%;text-align:center">
+      <div style="font-size:2.5rem;margin-bottom:16px">🔐</div>
+      <h1 style="font-size:1.6rem;font-weight:900;margin-bottom:8px;letter-spacing:-0.02em">Admin Access</h1>
+      <p style="font-size:0.9rem;color:var(--text-secondary);margin-bottom:28px;line-height:1.6">
+        Enter the admin password to access the trainer dashboard.
+        Real data protection is enforced server-side.
+      </p>
+      <div class="form-group" style="margin-bottom:16px;text-align:left">
+        <label class="form-label" for="admin-password">Admin Password</label>
+        <input type="password" id="admin-password" class="form-input" placeholder="Enter password" />
+      </div>
+      <button class="btn btn-primary w-full btn-lg" id="btn-login">Access Admin Panel</button>
+      <p style="margin-top:16px;font-size:0.78rem;color:var(--text-muted)">
+        Note: Frontend password gate is for UX only.<br>
+        Real access control is handled by server functions.
+      </p>
+      <a href="index.html" class="btn btn-ghost btn-sm" style="margin-top:16px">← Back to Portal</a>
+    </div>
+  </div>
+
+  <!-- ─── ADMIN DASHBOARD ─── -->
+  <div id="admin-dashboard" style="display:none">
+    <header class="site-header">
+      <div class="site-logo">
+        <div class="logo-icon">🛡️</div>
+        <span>Admin Panel</span>
+      </div>
+      <div class="nav-actions">
+        <button class="btn btn-ghost btn-sm" id="btn-export-csv">⬇ Export CSV</button>
+        <button class="btn btn-ghost btn-sm" id="btn-refresh">↻ Refresh</button>
+        <button class="btn btn-danger btn-sm" id="btn-logout">Logout</button>
+        <a href="index.html" class="btn btn-secondary btn-sm">← Portal</a>
+      </div>
+    </header>
+
+    <main class="pt-header" style="padding-bottom:80px">
+      <div class="container-wide" style="padding-top:40px">
+
+        <!-- STATS CARDS -->
+        <div class="section-header">
+          <h2 class="section-title">Trainer Dashboard</h2>
+          <p class="section-subtitle">All trainee submissions — sortable, filterable, exportable.</p>
+        </div>
+        <div class="stats-grid" style="margin-bottom:32px" id="admin-stats"></div>
+
+        <!-- FILTERS -->
+        <div class="glass-card-static" style="padding:20px 24px;margin-bottom:24px">
+          <div class="filter-row" id="filter-row">
+            <div class="form-group">
+              <label class="form-label">Search Trainee</label>
+              <input type="search" class="form-input" id="filter-name" placeholder="Name or ID…" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Track</label>
+              <select class="form-select" id="filter-track">
+                <option value="">All Tracks</option>
+                <option value="nppw">NPPW Operations</option>
+                <option value="insurance">Insurance VA</option>
+                <option value="executive">Executive Assistant</option>
+                <option value="general">General VA</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Exam Type</label>
+              <select class="form-select" id="filter-type">
+                <option value="">All Types</option>
+                <option value="practice">Practice Quiz</option>
+                <option value="exam1">Exam 1</option>
+                <option value="exam2">Exam 2</option>
+                <option value="final">Final Exam</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Result</label>
+              <select class="form-select" id="filter-result">
+                <option value="">All Results</option>
+                <option value="passed">Passed</option>
+                <option value="failed">Failed</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Date From</label>
+              <input type="date" class="form-input" id="filter-date-from" />
+            </div>
+            <div class="form-group" style="align-self:flex-end">
+              <button class="btn btn-ghost w-full" id="btn-clear-filters">Clear Filters</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- TRACK PERFORMANCE CARDS -->
+        <div style="margin-bottom:28px">
+          <h3 style="font-size:0.85rem;font-weight:700;color:var(--text-muted);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:12px">Track Performance</h3>
+          <div class="stats-grid" id="track-stats"></div>
+        </div>
+
+        <!-- ═══════════════ LEADERBOARD ═══════════════ -->
+        <div style="margin-bottom:36px">
+          <div class="flex items-center justify-between gap-3" style="margin-bottom:16px;flex-wrap:wrap;gap:10px">
+            <div>
+              <h3 style="font-size:1rem;font-weight:800;color:var(--text-primary);margin:0 0 2px">🏆 Leaderboard</h3>
+              <p style="font-size:0.8rem;color:var(--text-muted);margin:0">Top scores per trainee — best attempt per exam shown.</p>
+            </div>
+            <div id="lb-sync-status" class="lb-sync-badge">⏳ Loading…</div>
+          </div>
+
+          <div class="glass-card-static" style="padding:24px">
+            <!-- Track tabs -->
+            <div class="lb-tabs" id="lb-track-tabs">
+              <button class="lb-tab active" data-track="">All Tracks</button>
+              <button class="lb-tab track-nppw" data-track="nppw">⚙️ NPPW Operations</button>
+              <button class="lb-tab track-insurance" data-track="insurance">🛡️ Insurance VA</button>
+              <button class="lb-tab track-executive" data-track="executive">📅 Executive Assistant</button>
+              <button class="lb-tab track-general" data-track="general">🌐 General VA</button>
+            </div>
+
+            <!-- Exam type tabs -->
+            <div class="lb-type-tabs" id="lb-type-tabs">
+              <button class="lb-type-tab active" data-type="">All Exams</button>
+              <button class="lb-type-tab" data-type="practice">Practice</button>
+              <button class="lb-type-tab" data-type="exam1">Exam 1</button>
+              <button class="lb-type-tab" data-type="exam2">Exam 2</button>
+              <button class="lb-type-tab" data-type="final">Final Exam</button>
+            </div>
+
+            <!-- Leaderboard table -->
+            <div id="lb-content"></div>
+          </div>
+        </div>
+
+        <!-- ATTEMPTS TABLE -->
+        <div class="glass-card-static" style="padding:0;overflow:hidden">
+          <div class="flex items-center justify-between gap-3" style="padding:16px 20px;border-bottom:1px solid var(--border-subtle)">
+            <div style="font-size:0.85rem;font-weight:700;color:var(--text-primary)">Submission Log</div>
+            <div style="font-size:0.8rem;color:var(--text-muted)" id="table-count"></div>
+          </div>
+          <div style="overflow-x:auto">
+            <table class="data-table" id="attempts-table">
+              <thead>
+                <tr>
+                  <th>Trainee Name</th>
+                  <th>ID / Batch</th>
+                  <th>Track</th>
+                  <th>Exam</th>
+                  <th>Score</th>
+                  <th>Result</th>
+                  <th>Submitted</th>
+                  <th>Duration</th>
+                </tr>
+              </thead>
+              <tbody id="attempts-tbody"></tbody>
+            </table>
+          </div>
+          <div id="attempts-empty" class="hidden" style="padding:60px 24px;text-align:center;color:var(--text-muted)">
+            <div style="font-size:2rem;margin-bottom:12px">📭</div>
+            <div style="font-weight:700;color:var(--text-secondary)">No submissions match the filters</div>
+          </div>
+        </div>
+
+        <!-- DETAILED BREAKDOWN (expandable) -->
+        <div style="margin-top:32px">
+          <h3 style="font-size:1rem;font-weight:800;color:var(--text-primary);margin-bottom:16px">📊 Per-Trainee Category Breakdown</h3>
+          <div id="trainee-breakdown"></div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <script type="module">
+    import { loadAttemptHistory, saveAdminAuth, loadAdminAuth, clearAdminAuth } from './assets/storage.js';
+    import { TRACKS } from './data/tracks.js';
+    import { EXAMS }  from './data/exams.js';
+    import { renderStatCard, showToast } from './assets/ui.js';
+    import { initParticles } from './assets/animations.js';
+    import { fetchAttempts, fetchLeaderboard } from './assets/supabase-client.js';
+
+    const ADMIN_PASSWORD = 'trainer2024';
+
+    let allAttempts      = [];
+    let filteredData     = [];
+    let leaderboardData  = [];       // best-score-per-trainee rows
+    let lbTrackFilter    = '';
+    let lbTypeFilter     = '';
+    let lbFromSupabase   = false;
+
+    document.addEventListener('DOMContentLoaded', init);
+
+    function init() {
+      initParticles('particles-canvas');
+      if (loadAdminAuth()) { showDashboard(); } else { bindLoginEvents(); }
+    }
+
+    function bindLoginEvents() {
+      const btn = document.getElementById('btn-login');
+      const inp = document.getElementById('admin-password');
+      btn.addEventListener('click', tryLogin);
+      inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') tryLogin(); });
+    }
+
+    function tryLogin() {
+      const pw = document.getElementById('admin-password').value;
+      if (pw === ADMIN_PASSWORD) {
+        saveAdminAuth(pw);
+        showDashboard();
+      } else {
+        showToast('Incorrect password.', 'error');
+        document.getElementById('admin-password').value = '';
+      }
+    }
+
+    async function showDashboard() {
+      document.getElementById('login-gate').style.display      = 'none';
+      document.getElementById('admin-dashboard').style.display = '';
+
+      // Load from localStorage first (fast, always works)
+      allAttempts = loadAttemptHistory();
+
+      // Try Supabase enrichment in parallel
+      const [attemptsRes, lbRes] = await Promise.allSettled([
+        fetchAttempts({}, ADMIN_PASSWORD),
+        fetchLeaderboard(ADMIN_PASSWORD),
+      ]);
+
+      // Merge Supabase attempts
+      if (attemptsRes.status === 'fulfilled') {
+        const { success, data } = attemptsRes.value;
+        if (success && Array.isArray(data?.attempts) && data.attempts.length > 0) {
+          const existingIds = new Set(allAttempts.map((a) => a.id));
+          data.attempts.forEach((a) => { if (!existingIds.has(a.id)) allAttempts.unshift(a); });
+        }
+      }
+
+      // Build leaderboard from Supabase rows (preferred) or compute from allAttempts
+      if (lbRes.status === 'fulfilled' && lbRes.value.success && lbRes.value.data?.rows?.length > 0) {
+        leaderboardData = lbRes.value.data.rows;
+        lbFromSupabase  = true;
+      } else {
+        leaderboardData = computeLeaderboard(allAttempts);
+        lbFromSupabase  = false;
+      }
+
+      filteredData = [...allAttempts];
+      renderAll();
+      bindDashboardEvents();
+      bindLeaderboardEvents();
+    }
+
+    // ─── Compute leaderboard from local data ──────────────
+    function computeLeaderboard(attempts) {
+      const bestMap = {};
+      attempts.forEach((a) => {
+        const key = `${a.traineeName}|${a.trackId}|${a.examType}`;
+        if (!bestMap[key] || (a.percentage || 0) > (bestMap[key].percentage || 0)) {
+          bestMap[key] = a;
+        }
+      });
+      return Object.values(bestMap);
+    }
+
+    // ─── Render all dashboard sections ────────────────────
+    function renderAll() {
+      renderStats();
+      renderTrackStats();
+      renderTable();
+      renderBreakdown();
+      renderLeaderboard();
+    }
+
+    function renderStats() {
+      const total    = filteredData.length;
+      const passed   = filteredData.filter((a) => a.passed).length;
+      const avg      = total ? Math.round(filteredData.reduce((s, a) => s + (a.percentage || 0), 0) / total) : 0;
+      const trainees = new Set(filteredData.map((a) => a.traineeName)).size;
+
+      document.getElementById('admin-stats').innerHTML = [
+        renderStatCard('📋', total, 'Total Submissions', 'var(--text-accent)'),
+        renderStatCard('✅', total ? Math.round(passed / total * 100) + '%' : '—', 'Pass Rate', 'var(--accent-emerald)'),
+        renderStatCard('📊', avg + '%', 'Average Score', avg >= 75 ? 'var(--accent-emerald)' : 'var(--accent-amber)'),
+        renderStatCard('👥', trainees, 'Unique Trainees', 'var(--accent-cyan)'),
+      ].join('');
+    }
+
+    function renderTrackStats() {
+      const container = document.getElementById('track-stats');
+      container.innerHTML = TRACKS.map((track) => {
+        const ta     = filteredData.filter((a) => a.trackId === track.id);
+        const passed = ta.filter((a) => a.passed).length;
+        const rate   = ta.length ? Math.round(passed / ta.length * 100) : 0;
+        return `
+          <div class="stat-card">
+            <div class="stat-icon">${track.icon}</div>
+            <div style="font-size:1.1rem;font-weight:800;color:${track.accentColor}">${ta.length}</div>
+            <div class="stat-label">${track.title}</div>
+            <div style="font-size:0.78rem;color:${rate >= 75 ? 'var(--accent-emerald)' : 'var(--accent-amber)'};margin-top:4px">${rate}% pass rate</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderTable() {
+      const tbody   = document.getElementById('attempts-tbody');
+      const empty   = document.getElementById('attempts-empty');
+      const countEl = document.getElementById('table-count');
+
+      countEl.textContent = `${filteredData.length} record${filteredData.length !== 1 ? 's' : ''}`;
+
+      if (!filteredData.length) {
+        tbody.innerHTML = '';
+        empty.classList.remove('hidden');
+        return;
+      }
+      empty.classList.add('hidden');
+      tbody.innerHTML = filteredData.map((a) => {
+        const date      = new Date(a.submittedAt || a.savedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        const dur       = a.durationSeconds ? `${Math.ceil(a.durationSeconds / 60)}m` : '—';
+        const passClass = a.passed ? 'text-success' : 'text-danger';
+        return `
+          <tr>
+            <td><strong class="text-primary">${a.traineeName || '—'}</strong></td>
+            <td style="color:var(--text-muted)">${a.traineeIdBadge || '—'}</td>
+            <td>${a.trackTitle || '—'}</td>
+            <td style="font-size:0.85rem">${a.examTitle || '—'}</td>
+            <td><strong class="${passClass}">${a.percentage || 0}%</strong></td>
+            <td><span class="${passClass}">${a.passed ? '✅ Passed' : '❌ Failed'}</span></td>
+            <td class="text-muted text-sm">${date}</td>
+            <td class="text-muted text-sm">${dur}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function renderBreakdown() {
+      const container = document.getElementById('trainee-breakdown');
+      const byTrainee = {};
+      filteredData.forEach((a) => {
+        const key = a.traineeName || 'Unknown';
+        if (!byTrainee[key]) byTrainee[key] = [];
+        byTrainee[key].push(a);
+      });
+
+      if (!Object.keys(byTrainee).length) {
+        container.innerHTML = '<p style="color:var(--text-muted)">No data to display.</p>';
+        return;
+      }
+
+      container.innerHTML = Object.entries(byTrainee).slice(0, 20).map(([name, attempts]) => {
+        const passed = attempts.filter((a) => a.passed).length;
+        const avg    = Math.round(attempts.reduce((s, a) => s + (a.percentage || 0), 0) / attempts.length);
+        const examRows = attempts.map((a) => `
+          <tr>
+            <td style="font-size:0.82rem;color:var(--text-secondary)">${a.examTitle || '—'}</td>
+            <td><strong style="color:${a.passed ? 'var(--accent-emerald)' : 'var(--accent-rose)'}">${a.percentage || 0}%</strong></td>
+            <td><span style="font-size:0.8rem;color:${a.passed ? 'var(--accent-emerald)' : 'var(--accent-rose)'}">${a.passed ? 'Passed' : 'Failed'}</span></td>
+            <td style="font-size:0.78rem;color:var(--text-muted)">${new Date(a.submittedAt || a.savedAt).toLocaleDateString()}</td>
+          </tr>
+        `).join('');
+        return `
+          <div class="glass-card-static" style="padding:0;margin-bottom:12px;overflow:hidden">
+            <div class="flex items-center justify-between gap-3" style="padding:14px 20px;border-bottom:1px solid var(--border-subtle)">
+              <div>
+                <strong class="text-primary">${name}</strong>
+                <span style="font-size:0.78rem;color:var(--text-muted);margin-left:10px">${attempts.length} attempt${attempts.length !== 1 ? 's' : ''} · ${passed} passed · avg ${avg}%</span>
+              </div>
+            </div>
+            <div style="overflow-x:auto">
+              <table class="data-table">
+                <thead><tr><th>Exam</th><th>Score</th><th>Result</th><th>Date</th></tr></thead>
+                <tbody>${examRows}</tbody>
+              </table>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // ─── Leaderboard rendering ─────────────────────────────
+    function renderLeaderboard() {
+      // Update sync badge
+      const badge = document.getElementById('lb-sync-status');
+      if (lbFromSupabase) {
+        badge.className = 'lb-sync-badge live';
+        badge.textContent = '🟢 Live — Supabase';
+      } else if (leaderboardData.length > 0) {
+        badge.className = 'lb-sync-badge local';
+        badge.textContent = '🟡 Local data only';
+      } else {
+        badge.className = 'lb-sync-badge';
+        badge.textContent = '⚪ No submissions yet';
+      }
+
+      // Filter the leaderboard data
+      let rows = leaderboardData;
+      if (lbTrackFilter) rows = rows.filter((r) => r.trackId === lbTrackFilter);
+      if (lbTypeFilter)  rows = rows.filter((r) => r.examType === lbTypeFilter);
+
+      // Sort by percentage desc, then date asc (earliest first for ties)
+      rows = [...rows].sort((a, b) => {
+        const diff = (b.percentage || 0) - (a.percentage || 0);
+        if (diff !== 0) return diff;
+        return new Date(a.submittedAt || a.savedAt) - new Date(b.submittedAt || b.savedAt);
+      });
+
+      const TOP = 10;
+      const displayed = rows.slice(0, TOP);
+
+      const container = document.getElementById('lb-content');
+
+      if (!displayed.length) {
+        container.innerHTML = `
+          <div class="lb-empty">
+            <div style="font-size:2rem;margin-bottom:10px">🏅</div>
+            <div style="font-weight:700;color:var(--text-secondary);margin-bottom:4px">No scores yet</div>
+            <div>Complete an exam to appear on the leaderboard.</div>
+          </div>
+        `;
+        return;
+      }
+
+      const maxScore = displayed[0]?.percentage || 100;
+
+      const rowsHtml = displayed.map((r, i) => {
+        const rank       = i + 1;
+        const pct        = r.percentage || 0;
+        const barWidth   = Math.round((pct / Math.max(maxScore, 1)) * 100);
+        const fillClass  = r.passed ? 'pass' : 'fail';
+        const scoreColor = r.passed ? 'var(--accent-emerald, #10b981)' : 'var(--accent-rose, #f43f5e)';
+        const examLabel  = r.examTitle || examTypeLabel(r.examType);
+        const trackLabel = r.trackTitle || trackIdLabel(r.trackId);
+        const date       = r.submittedAt || r.savedAt
+          ? new Date(r.submittedAt || r.savedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+          : '—';
+
+        let medalHtml;
+        if (rank === 1) {
+          medalHtml = `<span class="lb-rank-medal lb-rank-1">🥇</span>`;
+        } else if (rank === 2) {
+          medalHtml = `<span class="lb-rank-medal lb-rank-2">🥈</span>`;
+        } else if (rank === 3) {
+          medalHtml = `<span class="lb-rank-medal lb-rank-3">🥉</span>`;
+        } else {
+          medalHtml = `<span class="lb-rank-medal lb-rank-n">${rank}</span>`;
+        }
+
+        const nameCol = `
+          <td style="padding:12px 16px;">
+            <div class="flex items-center gap-2" style="gap:10px">
+              ${medalHtml}
+              <div>
+                <div style="font-weight:700;color:var(--text-primary);font-size:0.88rem">${escHtml(r.traineeName || '—')}</div>
+                ${r.traineeIdBadge ? `<div style="font-size:0.72rem;color:var(--text-muted)">${escHtml(r.traineeIdBadge)}</div>` : ''}
+              </div>
+            </div>
+          </td>
+        `;
+
+        const trackCol = !lbTrackFilter ? `
+          <td style="padding:12px 16px;font-size:0.82rem;color:var(--text-secondary)">${escHtml(trackLabel)}</td>
+        ` : '';
+
+        const typeCol = !lbTypeFilter ? `
+          <td style="padding:12px 16px;font-size:0.82rem;color:var(--text-muted)">${escHtml(examLabel)}</td>
+        ` : '';
+
+        const scoreCol = `
+          <td style="padding:12px 16px;min-width:140px">
+            <div class="lb-score-bar-wrap">
+              <strong style="color:${scoreColor};font-size:0.9rem;min-width:38px">${pct}%</strong>
+              <div class="lb-score-bar">
+                <div class="lb-score-bar-fill ${fillClass}" style="width:${barWidth}%"></div>
+              </div>
+            </div>
+          </td>
+        `;
+
+        const dateCol = `
+          <td style="padding:12px 16px;font-size:0.78rem;color:var(--text-muted);white-space:nowrap">${date}</td>
+        `;
+
+        return `<tr>${nameCol}${trackCol}${typeCol}${scoreCol}${dateCol}</tr>`;
+      }).join('');
+
+      // Build table headers
+      const thTrack = !lbTrackFilter ? '<th style="padding:10px 16px">Track</th>' : '';
+      const thType  = !lbTypeFilter  ? '<th style="padding:10px 16px">Exam</th>'  : '';
+
+      container.innerHTML = `
+        <div style="overflow-x:auto">
+          <table style="width:100%;border-collapse:collapse">
+            <thead>
+              <tr style="border-bottom:1px solid var(--border-subtle);font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em">
+                <th style="padding:10px 16px;text-align:left">Trainee</th>
+                ${thTrack}
+                ${thType}
+                <th style="padding:10px 16px;text-align:left">Score</th>
+                <th style="padding:10px 16px;text-align:left">Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rowsHtml}
+            </tbody>
+          </table>
+        </div>
+        ${rows.length > TOP ? `<div style="padding:10px 16px;font-size:0.78rem;color:var(--text-muted);text-align:center">${rows.length - TOP} more entries not shown — use track or exam filters to narrow the view.</div>` : ''}
+      `;
+    }
+
+    // ─── Leaderboard tab events ───────────────────────────
+    function bindLeaderboardEvents() {
+      document.getElementById('lb-track-tabs').addEventListener('click', (e) => {
+        const btn = e.target.closest('.lb-tab');
+        if (!btn) return;
+        document.querySelectorAll('#lb-track-tabs .lb-tab').forEach((b) => b.classList.remove('active'));
+        btn.classList.add('active');
+        lbTrackFilter = btn.dataset.track;
+        renderLeaderboard();
+      });
+
+      document.getElementById('lb-type-tabs').addEventListener('click', (e) => {
+        const btn = e.target.closest('.lb-type-tab');
+        if (!btn) return;
+        document.querySelectorAll('#lb-type-tabs .lb-type-tab').forEach((b) => b.classList.remove('active'));
+        btn.classList.add('active');
+        lbTypeFilter = btn.dataset.type;
+        renderLeaderboard();
+      });
+    }
+
+    // ─── Filter logic ─────────────────────────────────────
+    function applyFilters() {
+      const name     = document.getElementById('filter-name').value.toLowerCase().trim();
+      const track    = document.getElementById('filter-track').value;
+      const type     = document.getElementById('filter-type').value;
+      const result   = document.getElementById('filter-result').value;
+      const dateFrom = document.getElementById('filter-date-from').value;
+
+      filteredData = allAttempts.filter((a) => {
+        if (name   && !((a.traineeName || '').toLowerCase().includes(name) || (a.traineeIdBadge || '').toLowerCase().includes(name))) return false;
+        if (track  && a.trackId !== track)   return false;
+        if (type   && a.examType !== type)   return false;
+        if (result === 'passed' && !a.passed) return false;
+        if (result === 'failed' &&  a.passed) return false;
+        if (dateFrom) {
+          if (new Date(a.submittedAt || a.savedAt) < new Date(dateFrom)) return false;
+        }
+        return true;
+      });
+
+      renderStats();
+      renderTrackStats();
+      renderTable();
+      renderBreakdown();
+    }
+
+    // ─── CSV Export ───────────────────────────────────────
+    function exportCSV() {
+      const headers = ['Trainee Name', 'ID/Batch', 'Proctor', 'Track', 'Exam', 'Type', 'Score', 'Result', 'Correct', 'Total', 'Submitted', 'Duration (s)'];
+      const rows    = filteredData.map((a) => [
+        a.traineeName || '',
+        a.traineeIdBadge || '',
+        a.proctorName || '',
+        a.trackTitle || '',
+        a.examTitle || '',
+        a.examType || '',
+        a.percentage || 0,
+        a.passed ? 'Passed' : 'Failed',
+        a.correctCount || 0,
+        a.totalQuestions || 0,
+        a.submittedAt || '',
+        a.durationSeconds || '',
+      ]);
+
+      const csv  = [headers, ...rows].map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href     = url;
+      a.download = `va-training-export-${new Date().toISOString().split('T')[0]}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast(`Exported ${filteredData.length} records`, 'success');
+    }
+
+    function bindDashboardEvents() {
+      ['filter-name', 'filter-track', 'filter-type', 'filter-result', 'filter-date-from'].forEach((id) => {
+        const el = document.getElementById(id);
+        el.addEventListener(el.tagName === 'INPUT' ? 'input' : 'change', applyFilters);
+      });
+
+      document.getElementById('btn-clear-filters').addEventListener('click', () => {
+        ['filter-name', 'filter-date-from'].forEach((id) => { document.getElementById(id).value = ''; });
+        ['filter-track', 'filter-type', 'filter-result'].forEach((id) => { document.getElementById(id).value = ''; });
+        filteredData = [...allAttempts];
+        renderAll();
+      });
+
+      document.getElementById('btn-export-csv').addEventListener('click', exportCSV);
+
+      document.getElementById('btn-refresh').addEventListener('click', async () => {
+        allAttempts     = loadAttemptHistory();
+        const lbRes     = await fetchLeaderboard(ADMIN_PASSWORD);
+        if (lbRes.success && lbRes.data?.rows?.length > 0) {
+          leaderboardData = lbRes.data.rows;
+          lbFromSupabase  = true;
+        } else {
+          leaderboardData = computeLeaderboard(allAttempts);
+          lbFromSupabase  = false;
+        }
+        filteredData = [...allAttempts];
+        renderAll();
+        showToast('Data refreshed', 'success');
+      });
+
+      document.getElementById('btn-logout').addEventListener('click', () => {
+        clearAdminAuth();
+        document.getElementById('admin-dashboard').style.display = 'none';
+        document.getElementById('login-gate').style.display      = '';
+        document.getElementById('admin-password').value          = '';
+        showToast('Logged out', 'info');
+      });
+    }
+
+    // ─── Helpers ──────────────────────────────────────────
+    function escHtml(str) {
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function examTypeLabel(type) {
+      const map = { practice: 'Practice Quiz', exam1: 'Exam 1', exam2: 'Exam 2', final: 'Final Exam' };
+      return map[type] || type || '—';
+    }
+
+    function trackIdLabel(id) {
+      const map = { nppw: 'NPPW Operations', insurance: 'Insurance VA', executive: 'Executive Assistant', general: 'General VA' };
+      return map[id] || id || '—';
+    }
+  </script>
+</body>
+</html>

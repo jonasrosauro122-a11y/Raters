@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VA Training Portal — Command Center</title>
+  <meta name="description" content="Virtual Assistant Training Exam Platform — Select your track and begin your certification journey." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/styles.css" />
+</head>
+<body>
+  <div class="bg-animated"></div>
+  <canvas id="particles-canvas"></canvas>
+  <div class="scanlines"></div>
+
+  <header class="site-header">
+    <div class="site-logo">
+      <div class="logo-icon">⚡</div>
+      <span>VA Training Portal</span>
+    </div>
+    <div class="nav-actions">
+      <a href="admin.html" class="btn btn-ghost btn-sm">Admin</a>
+      <button class="btn btn-secondary btn-sm" id="btn-clear-session">New Session</button>
+    </div>
+  </header>
+
+  <main class="pt-header">
+    <section class="hero">
+      <div class="container">
+        <div class="hero-badge"><div class="hero-badge-dot"></div>Training Command Center</div>
+        <h1 class="hero-title">Elevate Your<br /><span class="gradient-text">VA Career</span></h1>
+        <p class="hero-subtitle">Select your training track, complete exams in order, and earn your certification. Every great VA starts with mastering the fundamentals.</p>
+
+        <div class="glass-card-static" style="padding:32px;max-width:640px;margin-bottom:40px">
+          <h2 style="font-size:1.1rem;font-weight:800;margin-bottom:20px;color:var(--text-primary)">👤 Trainee Profile</h2>
+          <div class="grid-2" style="gap:16px">
+            <div class="form-group">
+              <label class="form-label" for="trainee-name">Full Name *</label>
+              <input type="text" id="trainee-name" class="form-input" placeholder="e.g. Maria Santos" autocomplete="name" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="trainee-id">Trainee ID / Batch</label>
+              <input type="text" id="trainee-id" class="form-input" placeholder="e.g. VA-2024-B3" />
+            </div>
+            <div class="form-group" style="grid-column:1/-1">
+              <label class="form-label" for="proctor-name">Trainer / Proctor</label>
+              <input type="text" id="proctor-name" class="form-input" placeholder="e.g. Coach Anna" />
+            </div>
+          </div>
+          <div id="session-restore" class="hidden" style="margin-top:16px;padding:14px;border-radius:10px;background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.2)">
+            <div class="flex items-center justify-between gap-2">
+              <div>
+                <div style="font-size:0.82rem;font-weight:700;color:var(--text-accent);margin-bottom:2px">↩ Restore previous session</div>
+                <div id="session-restore-info" style="font-size:0.8rem;color:var(--text-muted)"></div>
+              </div>
+              <button class="btn btn-secondary btn-sm" id="btn-restore-session">Restore</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="progress-overview" class="hidden" style="margin-bottom:40px">
+          <h3 style="font-size:0.85rem;font-weight:700;color:var(--text-muted);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:12px">Your Progress</h3>
+          <div class="stats-grid" id="progress-stats"></div>
+        </div>
+      </div>
+    </section>
+
+    <section style="padding-bottom:80px">
+      <div class="container">
+        <div class="section-header">
+          <h2 class="section-title">Choose Your Track</h2>
+          <p class="section-subtitle">Select the training program that matches your role.</p>
+        </div>
+        <div class="tracks-grid" id="tracks-grid"></div>
+      </div>
+    </section>
+
+    <section id="exams-section" class="hidden" style="padding-bottom:100px">
+      <div class="container">
+        <div class="section-header flex items-center justify-between flex-wrap gap-4">
+          <div>
+            <h2 class="section-title" id="exams-section-title">Track Exams</h2>
+            <p class="section-subtitle" id="exams-section-subtitle"></p>
+          </div>
+          <div id="track-pill-wrap"></div>
+        </div>
+        <div class="glass-card-static" style="padding:14px 20px;margin-bottom:24px">
+          <p style="font-size:0.88rem;color:var(--text-secondary);line-height:1.7" id="track-instructions-text"></p>
+        </div>
+        <div class="exams-grid" id="exams-grid"></div>
+        <div style="margin-top:32px">
+          <button class="btn btn-primary btn-xl" id="btn-start-exam" disabled>🚀 Start Selected Exam</button>
+          <div style="margin-top:12px;font-size:0.8rem;color:var(--text-muted)" id="selected-exam-info"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script type="module">
+    import { TRACKS, getTrackById } from './data/tracks.js';
+    import { EXAMS, getExamsByTrack, EXAM_TYPE_ORDER } from './data/exams.js';
+    import { saveUser, loadUser, saveSelectedTrack, loadSelectedTrack, saveSelectedExam, loadSelectedExam, loadProgress, isExamPassed, loadRecentSession, clearUser, loadAttemptHistory } from './assets/storage.js';
+    import { isExamUnlocked, getLockReason, isAttemptLimitReached } from './assets/exam-engine.js';
+    import { renderTrackCard, renderExamCard, renderStatCard, showToast, renderTrackPill } from './assets/ui.js';
+    import { goToExam, goToAdmin } from './assets/router.js';
+    import { initParticles, staggerEntrance } from './assets/animations.js';
+
+    let selectedTrack = null;
+    let selectedExam  = null;
+    let currentUser   = null;
+
+    document.addEventListener('DOMContentLoaded', init);
+
+    function init() {
+      initParticles('particles-canvas');
+      renderTracks();
+      restoreUser();
+      checkRecentSession();
+      bindEvents();
+    }
+
+    function restoreUser() {
+      const user = loadUser();
+      if (!user) return;
+      currentUser = user;
+      document.getElementById('trainee-name').value  = user.name    || '';
+      document.getElementById('trainee-id').value    = user.idBadge || '';
+      document.getElementById('proctor-name').value  = user.proctor || '';
+      renderProgressOverview(user);
+      const savedTrack = loadSelectedTrack();
+      if (savedTrack) {
+        const track = getTrackById(savedTrack);
+        if (track) { selectedTrack = track; renderTracks(); renderExams(track); document.getElementById('exams-section').classList.remove('hidden'); }
+      }
+    }
+
+    function checkRecentSession() {
+      const session = loadRecentSession();
+      if (!session?.user?.name) return;
+      const track = getTrackById(session.trackId);
+      const exam  = EXAMS.find((e) => e.id === session.examId);
+      if (track) {
+        document.getElementById('session-restore-info').textContent = `${session.user.name} · ${track.title}${exam ? ' · ' + exam.title : ''}`;
+        document.getElementById('session-restore').classList.remove('hidden');
+      }
+    }
+
+    function renderProgressOverview(user) {
+      const history = loadAttemptHistory().filter((a) => a.traineeName === user.name);
+      if (!history.length) return;
+      const passed = history.filter((a) => a.passed).length;
+      const avg    = Math.round(history.reduce((s,a) => s + a.percentage, 0) / history.length);
+      document.getElementById('progress-stats').innerHTML = [
+        renderStatCard('📋', history.length, 'Attempts Taken', 'var(--text-accent)'),
+        renderStatCard('✅', passed, 'Exams Passed', 'var(--accent-emerald)'),
+        renderStatCard('📊', avg + '%', 'Avg Score', avg >= 75 ? 'var(--accent-emerald)' : 'var(--accent-amber)'),
+        renderStatCard('🏆', TRACKS.filter((t) =>
+          EXAMS.filter((e) => e.trackId === t.id && e.examType === 'final').every((e) => isExamPassed(user.name, e.id))
+        ).length, 'Tracks Completed', 'var(--accent-cyan)'),
+      ].join('');
+      document.getElementById('progress-overview').classList.remove('hidden');
+    }
+
+    function renderTracks() {
+      const grid = document.getElementById('tracks-grid');
+      grid.innerHTML = '';
+      TRACKS.forEach((track) => {
+        const card = renderTrackCard(track, selectedTrack?.id === track.id, (t) => selectTrack(t));
+        grid.appendChild(card);
+      });
+      staggerEntrance(grid, '.track-card');
+    }
+
+    function selectTrack(track) {
+      selectedTrack = track;
+      selectedExam  = null;
+      saveSelectedTrack(track.id);
+      renderTracks();
+      renderExams(track);
+      document.getElementById('exams-section').classList.remove('hidden');
+      document.getElementById('btn-start-exam').disabled = true;
+      document.getElementById('selected-exam-info').textContent = '';
+      setTimeout(() => document.getElementById('exams-section').scrollIntoView({ behavior: 'smooth' }), 100);
+    }
+
+    function renderExams(track) {
+      const grid    = document.getElementById('exams-grid');
+      const title   = document.getElementById('exams-section-title');
+      const sub     = document.getElementById('exams-section-subtitle');
+      const pill    = document.getElementById('track-pill-wrap');
+      const instr   = document.getElementById('track-instructions-text');
+
+      title.textContent = track.title + ' — Exams';
+      sub.textContent   = track.categories.join(' · ');
+      pill.innerHTML    = renderTrackPill(track);
+      instr.textContent = `Practice Quiz is always open. Pass each exam in order to unlock the next. Minimum passing score: ${track.passingScore}%.`;
+
+      const history = loadAttemptHistory();
+      const uid     = currentUser?.name || '';
+      const exams   = getExamsByTrack(track.id).sort((a,b) => EXAM_TYPE_ORDER[a.examType] - EXAM_TYPE_ORDER[b.examType]);
+
+      grid.innerHTML = '';
+      exams.forEach((exam) => {
+        const unlocked   = isExamUnlocked(exam, uid);
+        const passed     = uid && isExamPassed(uid, exam.id);
+        const limitHit   = isAttemptLimitReached(exam, history, uid);
+        const lockReason = getLockReason(exam, exams);
+
+        let status = exam.examType === 'practice' ? 'practice' : 'available';
+        if (passed)   status = 'passed';
+        if (limitHit && !passed) status = 'failed';
+        if (!unlocked) status = 'locked';
+
+        const effectiveLocked = !unlocked || (limitHit && !passed);
+        const card = renderExamCard(exam, effectiveLocked ? 'locked' : status,
+          effectiveLocked ? (lockReason || 'Attempt limit reached') : null,
+          (e) => selectExam(e));
+        grid.appendChild(card);
+      });
+      staggerEntrance(grid, '.exam-card');
+    }
+
+    function selectExam(exam) {
+      selectedExam = exam;
+      saveSelectedExam(exam.id);
+      document.getElementById('btn-start-exam').disabled = false;
+      document.getElementById('selected-exam-info').textContent =
+        `Selected: ${exam.title} · ${exam.durationMinutes} min · ${exam.passingScore}% to pass`;
+      showToast(`Selected: ${exam.title}`, 'info', 2000);
+    }
+
+    function bindEvents() {
+      document.getElementById('btn-start-exam').addEventListener('click', startExam);
+      document.getElementById('btn-clear-session').addEventListener('click', () => {
+        if (!confirm('Start a new session? Progress history will be kept.')) return;
+        clearUser();
+        currentUser = null; selectedTrack = null; selectedExam = null;
+        document.getElementById('trainee-name').value  = '';
+        document.getElementById('trainee-id').value    = '';
+        document.getElementById('proctor-name').value  = '';
+        document.getElementById('exams-section').classList.add('hidden');
+        document.getElementById('progress-overview').classList.add('hidden');
+        renderTracks();
+        showToast('Session cleared. Enter your details to begin.', 'info');
+      });
+      document.getElementById('btn-restore-session').addEventListener('click', () => {
+        const session = loadRecentSession();
+        if (!session) return;
+        document.getElementById('trainee-name').value  = session.user.name    || '';
+        document.getElementById('trainee-id').value    = session.user.idBadge || '';
+        document.getElementById('proctor-name').value  = session.user.proctor || '';
+        currentUser = session.user;
+        const track = getTrackById(session.trackId);
+        if (track) selectTrack(track);
+        showToast('Session restored!', 'success');
+      });
+      ['trainee-name','trainee-id','proctor-name'].forEach((id) => {
+        document.getElementById(id).addEventListener('input', updateUser);
+      });
+    }
+
+    function updateUser() {
+      const name    = document.getElementById('trainee-name').value.trim();
+      const idBadge = document.getElementById('trainee-id').value.trim();
+      const proctor = document.getElementById('proctor-name').value.trim();
+      if (!name) { currentUser = null; return; }
+      currentUser = { name, idBadge, proctor };
+      saveUser(currentUser);
+      renderProgressOverview(currentUser);
+      if (selectedTrack) renderExams(selectedTrack);
+    }
+
+    function startExam() {
+      if (!selectedExam || !selectedTrack) { showToast('Please select a track and exam first.', 'warning'); return; }
+      const name = document.getElementById('trainee-name').value.trim();
+      if (!name) { showToast('Please enter your full name before starting.', 'warning'); document.getElementById('trainee-name').focus(); return; }
+      updateUser();
+      goToExam(selectedTrack.id, selectedExam.id);
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,57 @@
+[build]
+  command   = "npx vite build"
+  publish   = "dist"
+  functions = "netlify/functions"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+[[redirects]]
+  from   = "/.netlify/functions/submit-attempt"
+  to     = "/.netlify/functions/submit-attempt"
+  status = 200
+
+[[redirects]]
+  from   = "/.netlify/functions/get-attempts"
+  to     = "/.netlify/functions/get-attempts"
+  status = 200
+
+[[redirects]]
+  from   = "/exam"
+  to     = "/exam.html"
+  status = 200
+
+[[redirects]]
+  from   = "/results"
+  to     = "/results.html"
+  status = 200
+
+[[redirects]]
+  from   = "/admin"
+  to     = "/admin.html"
+  status = 200
+
+[[redirects]]
+  from   = "/*"
+  to     = "/index.html"
+  status = 200
+
+[functions]
+  node_bundler = "esbuild"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"

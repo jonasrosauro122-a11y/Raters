@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Results — VA Training Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/styles.css" />
+</head>
+<body>
+  <div class="bg-animated"></div>
+  <canvas id="particles-canvas"></canvas>
+  <div class="scanlines"></div>
+  <canvas id="confetti-canvas" class="hidden"></canvas>
+
+  <header class="site-header">
+    <div class="site-logo">
+      <div class="logo-icon">⚡</div>
+      <span>VA Training Portal</span>
+    </div>
+    <div class="nav-actions">
+      <button class="btn btn-ghost btn-sm" onclick="window.print()">🖨 Print</button>
+      <a href="index.html" class="btn btn-secondary btn-sm">← Dashboard</a>
+    </div>
+  </header>
+
+  <div class="loading-screen" id="loading-screen">
+    <div class="loading-spinner"></div>
+    <div style="color:var(--text-muted)">Loading results…</div>
+  </div>
+
+  <main class="pt-header" id="results-main" style="display:none;padding-bottom:100px">
+    <div class="container-narrow" style="padding-top:48px">
+
+      <!-- TOP BANNER -->
+      <div class="glass-card-static" style="padding:40px;text-align:center;margin-bottom:32px" id="result-banner">
+        <div id="result-icon" style="font-size:3.5rem;margin-bottom:16px"></div>
+        <div id="result-pass-badge" style="margin-bottom:12px"></div>
+        <div style="font-size:clamp(3rem,8vw,5.5rem);font-weight:900;letter-spacing:-0.04em;line-height:1;margin-bottom:8px">
+          <span id="score-display" class="score-number">0</span><span style="font-size:2rem;color:var(--text-muted)">%</span>
+        </div>
+        <div class="score-label">Final Score</div>
+        <div style="margin-top:20px;font-size:0.9rem;color:var(--text-secondary)" id="result-meta"></div>
+      </div>
+
+      <!-- STATS ROW -->
+      <div class="stats-grid" style="margin-bottom:28px" id="result-stats"></div>
+
+      <!-- TRAINEE INFO -->
+      <div class="glass-card-static" style="padding:24px;margin-bottom:24px">
+        <div style="font-size:0.78rem;font-weight:700;color:var(--text-muted);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:14px">Submission Details</div>
+        <div class="grid-2" style="gap:12px" id="result-info"></div>
+      </div>
+
+      <!-- CATEGORY BREAKDOWN -->
+      <div class="glass-card-static" style="padding:24px;margin-bottom:24px">
+        <div style="font-size:1rem;font-weight:800;color:var(--text-primary);margin-bottom:20px">📊 Category Breakdown</div>
+        <div id="category-breakdown"></div>
+      </div>
+
+      <!-- QUESTION REVIEW -->
+      <div class="glass-card-static" style="padding:24px;margin-bottom:28px">
+        <div class="flex items-center justify-between mb-4">
+          <div style="font-size:1rem;font-weight:800;color:var(--text-primary)">📝 Question Review</div>
+          <div class="flex gap-2">
+            <button class="btn btn-ghost btn-sm" id="btn-toggle-all">Expand All</button>
+            <button class="btn btn-secondary btn-sm" id="btn-show-explanations">Show Explanations</button>
+          </div>
+        </div>
+        <div id="review-list"></div>
+      </div>
+
+      <!-- NEXT STEPS -->
+      <div class="flex gap-3 flex-wrap justify-center">
+        <a href="index.html" class="btn btn-ghost btn-lg">← Back to Dashboard</a>
+        <button class="btn btn-primary btn-lg" id="btn-next-exam" style="display:none">Next Exam →</button>
+        <button class="btn btn-secondary btn-lg" id="btn-retry">🔄 Retry Exam</button>
+      </div>
+
+    </div>
+  </main>
+
+  <script type="module">
+    import { loadAttemptHistory, loadSelectedExam, loadSelectedTrack, isExamPassed, loadUser } from './assets/storage.js';
+    import { getExamById, EXAMS, EXAM_TYPE_ORDER } from './data/exams.js';
+    import { getTrackById } from './data/tracks.js';
+    import { getQuestionsByExam } from './data/question-bank.js';
+    import { prepareExamQuestions, scoreAttempt, getCategoryBreakdown } from './assets/exam-engine.js';
+    import { renderCategoryBreakdown, renderQuestionReview, renderStatCard, showToast } from './assets/ui.js';
+    import { goHome, goToExam, getQueryParam } from './assets/router.js';
+    import { initParticles, animateCountUp, launchConfetti } from './assets/animations.js';
+
+    let showExplanations = false;
+    let allExpanded      = false;
+    let attempt          = null;
+
+    document.addEventListener('DOMContentLoaded', init);
+
+    function init() {
+      initParticles('particles-canvas');
+
+      const examId  = getQueryParam('examId') || loadSelectedExam();
+      const history = loadAttemptHistory();
+      const user    = loadUser();
+
+      // Find the most recent attempt for this exam
+      attempt = history.find((a) => a.examId === examId) || history[0];
+
+      if (!attempt) {
+        showToast('No results found. Returning home.', 'error');
+        setTimeout(goHome, 2000);
+        return;
+      }
+
+      const exam  = getExamById(attempt.examId || examId);
+      const track = getTrackById(attempt.trackId);
+
+      document.getElementById('loading-screen').style.display = 'none';
+      document.getElementById('results-main').style.display   = '';
+
+      renderBanner(attempt, exam);
+      renderStats(attempt, exam);
+      renderInfo(attempt, exam, track);
+      renderCategoryBreakdownSection(attempt);
+      renderReview(attempt, exam);
+      renderNextSteps(attempt, exam, track, user);
+
+      // Confetti on pass
+      if (attempt.passed) {
+        setTimeout(launchConfetti, 500);
+      }
+    }
+
+    function renderBanner(attempt, exam) {
+      const passed = attempt.passed;
+      const icon   = passed ? '🏆' : '📋';
+      const pct    = attempt.percentage || 0;
+
+      document.getElementById('result-icon').textContent = icon;
+      document.getElementById('result-pass-badge').innerHTML = `
+        <span class="pass-badge ${passed ? 'passed' : 'failed'}">
+          ${passed ? '✅ PASSED' : '❌ NOT PASSED'}
+        </span>
+      `;
+
+      const scoreEl = document.getElementById('score-display');
+      scoreEl.className = `score-number${passed ? '' : ' failed'}`;
+      animateCountUp(scoreEl, 0, pct, 1200);
+
+      document.getElementById('result-meta').innerHTML = `
+        <strong style="color:var(--text-primary)">${attempt.traineeName || '—'}</strong> · 
+        ${attempt.trackTitle} · ${attempt.examTitle} · 
+        Required: ${exam?.passingScore ?? attempt.percentage}% to pass
+      `;
+    }
+
+    function renderStats(attempt, exam) {
+      const container = document.getElementById('result-stats');
+      const durationMin = attempt.durationSeconds ? Math.ceil(attempt.durationSeconds / 60) : null;
+      container.innerHTML = [
+        renderStatCard('✅', `${attempt.correctCount}/${attempt.totalQuestions}`, 'Correct Answers', 'var(--accent-emerald)'),
+        renderStatCard('📊', `${attempt.percentage}%`, 'Score', attempt.passed ? 'var(--accent-emerald)' : 'var(--accent-rose)'),
+        renderStatCard('🎯', `${exam?.passingScore ?? 75}%`, 'Passing Score', 'var(--text-accent)'),
+        renderStatCard('⏱', durationMin ? `${durationMin} min` : '—', 'Time Used', 'var(--accent-cyan)'),
+      ].join('');
+    }
+
+    function renderInfo(attempt, exam, track) {
+      const date = new Date(attempt.submittedAt || attempt.savedAt).toLocaleString('en-US', {
+        dateStyle: 'medium', timeStyle: 'short',
+      });
+      const rows = [
+        ['👤 Trainee', attempt.traineeName || '—'],
+        ['🔖 ID / Batch', attempt.traineeIdBadge || '—'],
+        ['👨‍🏫 Proctor', attempt.proctorName || '—'],
+        ['📅 Submitted', date],
+        ['🏷 Track', attempt.trackTitle || '—'],
+        ['📝 Exam', attempt.examTitle || '—'],
+        ['🔢 Version', attempt.examVersion || '1.0'],
+        ['🌐 Environment', attempt.environment || 'production'],
+      ];
+      document.getElementById('result-info').innerHTML = rows.map(([label, val]) => `
+        <div>
+          <div style="font-size:0.75rem;color:var(--text-muted);font-weight:600;margin-bottom:3px">${label}</div>
+          <div style="font-size:0.9rem;color:var(--text-primary);font-weight:500">${val}</div>
+        </div>
+      `).join('');
+    }
+
+    function renderCategoryBreakdownSection(attempt) {
+      const container = document.getElementById('category-breakdown');
+      const breakdown  = attempt.categoryBreakdownJson || [];
+      if (!breakdown.length) {
+        container.innerHTML = '<p style="color:var(--text-muted);font-size:0.9rem">No breakdown data available.</p>';
+        return;
+      }
+      renderCategoryBreakdown(breakdown, container);
+    }
+
+    function renderReview(attempt, exam) {
+      const container = document.getElementById('review-list');
+      const answers   = attempt.answersJson || {};
+      
+      // Reconstruct questions from the question bank (use order-preserved for review)
+      const { getQuestionsByExam } = await import('./data/question-bank.js').catch(() => ({ getQuestionsByExam: () => [] }));
+      const questions = getQuestionsByExam(attempt.examId);
+
+      if (!questions.length) {
+        container.innerHTML = '<p style="color:var(--text-muted)">Question data unavailable for review.</p>';
+        return;
+      }
+
+      container.innerHTML = '';
+      questions.forEach((q, i) => {
+        const given     = answers[i];
+        const isCorrect = given !== undefined && given === q.correctAnswer;
+
+        const item = document.createElement('div');
+        item.className = 'review-item';
+
+        const statusIcon  = isCorrect ? '✅' : (given === undefined ? '—' : '❌');
+        const statusColor = isCorrect ? 'var(--accent-emerald)' : (given === undefined ? 'var(--text-muted)' : 'var(--accent-rose)');
+
+        item.innerHTML = `
+          <div class="review-item-header">
+            <div class="flex items-center gap-3">
+              <span style="color:${statusColor};font-size:1rem">${statusIcon}</span>
+              <span style="font-size:0.88rem;color:var(--text-secondary);line-height:1.4">${i+1}. ${q.prompt.substring(0, 80)}${q.prompt.length > 80 ? '…' : ''}</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="badge badge-${q.difficulty}">${q.difficulty}</span>
+              <span style="font-size:0.9rem;color:var(--text-muted)">▾</span>
+            </div>
+          </div>
+          <div class="review-item-body" data-index="${i}">
+            ${renderQuestionReview(q, given, showExplanations)}
+          </div>
+        `;
+
+        item.querySelector('.review-item-header').addEventListener('click', () => {
+          const body = item.querySelector('.review-item-body');
+          body.classList.toggle('open');
+        });
+
+        container.appendChild(item);
+      });
+    }
+
+    function renderNextSteps(attempt, exam, track, user) {
+      const retryBtn    = document.getElementById('btn-retry');
+      const nextExamBtn = document.getElementById('btn-next-exam');
+
+      retryBtn.addEventListener('click', () => {
+        if (exam && track) goToExam(track.id, exam.id);
+        else goHome();
+      });
+
+      if (!attempt.passed || !track) return;
+
+      // Find next exam in progression
+      const trackExams = EXAMS.filter((e) => e.trackId === track.id)
+        .sort((a, b) => EXAM_TYPE_ORDER[a.examType] - EXAM_TYPE_ORDER[b.examType]);
+      const currentIdx = trackExams.findIndex((e) => e.id === exam?.id);
+      const nextExam   = trackExams[currentIdx + 1];
+
+      if (nextExam && !isExamPassed(user?.name || '', nextExam.id)) {
+        nextExamBtn.style.display = '';
+        nextExamBtn.textContent   = `${nextExam.title} →`;
+        nextExamBtn.addEventListener('click', () => goToExam(track.id, nextExam.id));
+      }
+    }
+
+    // ─── Controls ─────────────────────────────────────────
+    document.getElementById('btn-toggle-all').addEventListener('click', () => {
+      allExpanded = !allExpanded;
+      document.querySelectorAll('.review-item-body').forEach((el) => {
+        el.classList.toggle('open', allExpanded);
+      });
+      document.getElementById('btn-toggle-all').textContent = allExpanded ? 'Collapse All' : 'Expand All';
+    });
+
+    document.getElementById('btn-show-explanations').addEventListener('click', () => {
+      showExplanations = !showExplanations;
+      document.getElementById('btn-show-explanations').textContent = showExplanations ? 'Hide Explanations' : 'Show Explanations';
+      if (attempt) renderReview(attempt, getExamById(attempt.examId));
+    });
+
+    // Async helper for question bank import
+    async function importQuestionBank() {
+      const mod = await import('./data/question-bank.js');
+      return mod;
+    }
+
+    // Re-wire renderReview to be async-friendly
+    async function renderReview(attempt, exam) {
+      const container = document.getElementById('review-list');
+      const answers   = attempt.answersJson || {};
+      const { getQuestionsByExam } = await importQuestionBank();
+      const questions = getQuestionsByExam(attempt.examId);
+
+      if (!questions.length) {
+        container.innerHTML = '<p style="color:var(--text-muted)">Question data unavailable for review.</p>';
+        return;
+      }
+
+      container.innerHTML = '';
+      questions.forEach((q, i) => {
+        const given     = answers[i];
+        const isCorrect = given !== undefined && given === q.correctAnswer;
+
+        const item = document.createElement('div');
+        item.className = 'review-item';
+        const statusIcon  = isCorrect ? '✅' : (given === undefined ? '—' : '❌');
+        const statusColor = isCorrect ? 'var(--accent-emerald)' : (given === undefined ? 'var(--text-muted)' : 'var(--accent-rose)');
+
+        item.innerHTML = `
+          <div class="review-item-header">
+            <div class="flex items-center gap-3">
+              <span style="color:${statusColor};font-size:1rem">${statusIcon}</span>
+              <span style="font-size:0.88rem;color:var(--text-secondary);line-height:1.4">${i+1}. ${q.prompt.substring(0,80)}${q.prompt.length>80?'…':''}</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="badge badge-${q.difficulty}">${q.difficulty}</span>
+              <span style="font-size:0.9rem;color:var(--text-muted)">▾</span>
+            </div>
+          </div>
+          <div class="review-item-body" data-index="${i}">
+            ${renderQuestionReview(q, given, showExplanations)}
+          </div>
+        `;
+
+        item.querySelector('.review-item-header').addEventListener('click', () => {
+          item.querySelector('.review-item-body').classList.toggle('open');
+        });
+
+        container.appendChild(item);
+      });
+    }
+  </script>
+</body>
+</html>
